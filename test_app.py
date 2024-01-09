@@ -21,7 +21,7 @@ class FlaskAppTestCase(unittest.TestCase):
         delete_index = len(items) - 1
         response = self.app.get(f'/delete/{delete_index}')
         self.assertEqual(response.status_code, 302)  # redirect status code
-        self.assertIn('Delete Me', items)
+        self.assertNotIn('Delete Me', items)
 
     # Integration test
     def test_add_and_delete_integration(self):
