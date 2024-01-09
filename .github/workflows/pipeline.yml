@@ -1,0 +1,35 @@
+name: Flask CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Build the Docker image
+      run: |
+        docker build -t my-flask-app .
+
+    - name: Run the Flask application
+      run: |
+        docker run -d -p 5000:5000 --name flaskapp my-flask-app
+
+    - name: Run tests in the Docker container
+      run: |
+        docker run --rm my-flask-app python -m unittest discover
+
+    - name: Cleanup
+      if: always()
+      run: docker rm -f flaskapp
