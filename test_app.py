@@ -1,38 +1,49 @@
 import unittest
-from app import app,items
+from app import app
 
-class FlaskAppTestCase(unittest.TestCase):
-
+class TestFlaskApp(unittest.TestCase):
     def setUp(self):
+       
         self.app = app.test_client()
-        self.app.testing = True 
+        self.app.testing = True
 
-    # Unit test for add_item function
+    def test_read_page(self):
+        # check if the page is loaded
+        response = self.app.get('/')
+        self.assertEqual(response.status_code, 200, "Homepage should return 200 OK")
+        
+
     def test_add_item(self):
-        initial_count = len(items)
-        response = self.app.post('/add', data={'item': 'Test Item'})
-        self.assertEqual(response.status_code, 302)  # redirect status code
-        self.assertEqual(len(items), initial_count + 1)
-        self.assertIn('Test Item', items)
+        # Test adding an item to the list
+        response = self.app.post('/add', data=dict(item="Test Item"), follow_redirects=True)
+        self.assertEqual(response.status_code, 200, "Response should be 200 OK")
+        self.assertIn("Test Item", response.data.decode(), "Added item should be visible on the page")
 
-    # Unit test for delete_item function
     def test_delete_item(self):
-        items.append('Delete Me')
-        delete_index = len(items) - 1
-        response = self.app.get(f'/delete/{delete_index}')
-        self.assertEqual(response.status_code, 302)  # redirect status code
-        self.assertNotIn('Delete Me', items)
+        # Delete is a Get instead of Post
+        # Add an item first
+        self.app.post('/add', data=dict(item="Delete Me"), follow_redirects=True)
+        
+        # Debug print
+        #response = self.app.get('/')
+        #print("Before deletion:", response.data.decode())
 
-    # Integration test
-    def test_add_and_delete_integration(self):
-        # Add an item
-        add_response = self.app.post('/add', data={'item': 'Integration Test'})
-        self.assertIn('Integration Test', items)
+        # Attempt to delete the first item
+        response = self.app.get('/delete/1', follow_redirects=True)
+        
+        # Debug print
+        response_after_delete = self.app.get('/')
+        #print("After deletion:", response_after_delete.data.decode())
 
-        # Delete the same item
-        delete_index = items.index('Integration Test')
-        delete_response = self.app.get(f'/delete/{delete_index}')
-        self.assertNotIn('Integration Test', items)
+        self.assertNotIn("Delete Me", response_after_delete.data.decode(), "Deleted item should no longer be visible")
+
+
+    def test_update_item(self):
+        # Add an item first, then attempt to update it
+        self.app.post('/add', data=dict(item="Old Item"), follow_redirects=True)
+        response = self.app.post('/update/1', data=dict(new_item="Updated Item"), follow_redirects=True)
+        self.assertEqual(response.status_code, 200, "Response should be 200 OK")
+        self.assertIn("Updated Item", response.data.decode(), "Updated item should display the new value")
 
 if __name__ == '__main__':
     unittest.main()
